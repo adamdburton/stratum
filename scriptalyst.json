@@ -1,0 +1,11 @@
+{
+	"name": "adamdburton/stratum",
+	"description": "Class system for lua with inheritance, interfaces and traits",
+	"keywords": [ "classes" ],
+	"license": "MIT",
+	"autorun": {
+		"server": [
+			"stratum/stratum.lua"
+		]
+	}
+}
