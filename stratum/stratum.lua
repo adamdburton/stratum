@@ -98,7 +98,7 @@ end
 function private(name)
 	if not lastName then error('No classes have been defined') end
 	
-	classes[lastName].__private[name] = nil
+	stratum[lastType][lastName].__private[name] = nil
 	
 	return '__private' .. name
 end
@@ -106,31 +106,32 @@ end
 function public(name)
 	if not lastName then error('No classes have been defined') end
 	
-	classes[lastName].__public[name] = nil
+	stratum[lastType][lastName].__public[name] = nil
 	
-	return '__public' .. name
+	return name
 end
 
 function protected(name)
 	if not lastName then error('No classes have been defined') end
 	
-	classes[lastName].__protected[name] = nil
+	stratum[lastType][lastName].__protected[name] = nil
 	
 	return '__protected' .. name
 end
 
 function static(name)
 	if not lastName then error('No classes have been defined') end
+	if not lastType == 'classes' then error('Only classes can have statics') end
 	
 	classStatics[lastName][name] = nil
 end
 
 -- Returns a new instance of a class
 
-function new(class)
+function new(class, ...)
 	local t = {
+		__className = class,
 		__private = {},
-		__public = {},
 		__protected = {},
 		__publicStatic = {},
 		__privateStatic = {},
@@ -143,7 +144,7 @@ function new(class)
 	
 	setmetatable(t, classes[class])
 	
-	t::__construct()
+	t::__construct(unpack(...))
 	
 	return t
 end
