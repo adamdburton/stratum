@@ -60,7 +60,7 @@ function extends(name)
 	if not lastType == 'classes' then error('Only classes can extend other classes') end
 	if not stratum.classes[name] then error('Cannot extend with nonexistent class ' .. name) end
 	
-	table.push(stratum.classExtends[lastName], name)
+	stratum.classExtends[lastName] = name
 end
 
 -- Makes a class implements an interface
@@ -70,7 +70,7 @@ function implements(name)
 	if not lastType == 'classes' then error('Only classes can implement interfaces') end
 	if not stratum.classes[name] then error('Cannot implement nonexistent interface ' .. name) end
 	
-	table.push(stratum.classImplements[lastName], name)
+	table.insert(stratum.classImplements[lastName], name)
 end
 
 -- Makes a class use a trait
@@ -80,7 +80,7 @@ function has(name)
 	if not lastType == 'classes' then error('Only classes can have traits') end
 	if not stratum.classes[name] then error('Cannot use nonexistent trait ' .. name) end
 	
-	table.push(stratum.classTraits[lastName], name)
+	table.insert(stratum.classTraits[lastName], name)
 end
 
 -- Provides the body of a class
@@ -88,71 +88,164 @@ end
 function is(tbl)
 	if not lastName then error('No classes have been defined') end
 	
-	stratum[lastType][lastName] = tbl
-end
-
---[[
-	Internal class functions for keeping track of publics, privates, protecteds and statics
-]]
-
-function private(name)
-	if not lastName then error('No classes have been defined') end
-	
-	stratum[lastType][lastName].__private[name] = nil
-	
-	return '__private' .. name
-end
-
-function public(name)
-	if not lastName then error('No classes have been defined') end
-	
-	stratum[lastType][lastName].__public[name] = nil
-	
-	return name
-end
-
-function protected(name)
-	if not lastName then error('No classes have been defined') end
-	
-	stratum[lastType][lastName].__protected[name] = nil
-	
-	return '__protected' .. name
-end
-
-function static(name)
-	if not lastName then error('No classes have been defined') end
-	if not lastType == 'classes' then error('Only classes can have statics') end
-	
-	classStatics[lastName][name] = nil
+	stratum.classes[lastName] = tbl
 end
 
 -- Returns a new instance of a class
 
 function new(class, ...)
-	local t = {
+	
+	local baseClass = {
 		__className = class,
-		__private = {},
-		__protected = {},
-		__publicStatic = {},
-		__privateStatic = {},
-		__protectedStatic = {},
+		
+		__construct = function() end,
+		__destruct = function() end,
+	}
+	
+	local classMeta = {
+		
+		__properties = {},
 		
 		__index = function(self, key)
-			-- Check if we're calling from inside the class or outside, or from a extended class, or from a trait
+			-- Check if we're trying to get the parent
+			
+			if key == 'parent' then
+				return function()
+					local classTable = stratum.classes[stratum.classExtends[self.__className]]
+					local mt = getmetatable(self)
+					
+					classTable.__className = stratum.classExtends[self.__className] -- Change the className to the parents so the __index lookup for parent doesn't loop
+					
+					return setmetatable(classTable, mt)
+				end
+			end
+			
+			-- Check if the key is in our properties
+			
+			local t = getmetatable(self)
+			
+			if t.__properties[key] then
+				return t.__properties[key]
+			end
+			
+			-- Check if the method exists in a trait
+			
+			for k, v in pairs(stratum.classTraits) do
+				
+			end
+			
+			-- Or if not, pass it to the parent
+			
+			if stratum.classExtends[self.__className] then
+				return stratum.classes[stratum.classExtends[self.__className]][key]
+			end
+		end,
+		
+		__newindex = function(self, key, value)
+			-- Add this to our properties in the metatable
+			
+			local t = getmetatable(self)
+			t.__properties[key] = value
+			setmetatable(self, t)
 		end
 	}
 	
-	setmetatable(t, classes[class])
+	-- Loop through the parent classes, building up the layers to reach the desired class
 	
-	t::__construct(unpack(...))
+	local parentClasses = {}
+	local parentClass = class
 	
-	return t
+	while stratum.classExtends[parentClass] do
+		table.insert(parentClasses, stratum.classExtends[parentClass])
+		parentClass = stratum.classExtends[parentClass]
+	end
+	
+	local classTable = {}
+	
+	for k, v in pairs(baseClass) do
+		classTable[k] = v
+	end
+	
+	if #parentClasses then
+		-- Extended class, start from the bottom
+		
+		for _, nextClass in pairs(table.reverse(parentClasses)) do
+			for k, v in pairs(stratum.classes[nextClass]) do
+				classTable[k] = v
+			end
+		end
+		
+		for k, v in pairs(stratum.classes[class]) do
+			classTable[k] = v
+		end
+	else
+		-- Base class, the normal table is fine
+		
+		classTable = stratum.classes[class]
+	end
+	
+	setmetatable(classTable, classMeta)
+	
+	classTable:__construct(unpack({ ... }))
+	
+	return classTable
 end
 
 -- Exceptions
 
 function throw(exception)
 	error()
+end
+
+-- Stolen from Garry's Mod
+
+function PrintTable ( t, indent, done )
+
+	done = done or {}
+	indent = indent or 0
+	local keys = {}
+
+	for key, value in pairs (t) do
+
+		table.insert(keys, key)
+
+	end
+
+	table.sort(keys, function(a, b)
+		return tostring(a) < tostring(b)
+	end)
+
+	for i = 1, #keys do
+		key = keys[i]
+		value = t[key]
+		print( string.rep ("\t", indent) )
+
+		if  ( type(value) == 'table' and not done[value] ) then
+
+			done[value] = true
+			print( tostring(key) .. ":" .. "\n" );
+			PrintTable (value, indent + 2, done)
+
+		else
+
+			print( tostring (key) .. "\t=\t" )
+			print( tostring(value) .. "\n" )
+
+		end
+
+	end
+
+end
+
+-- https://gist.github.com/balaam/3122129
+
+function table.reverse(t)
+    local reversedTable = {}
+    local itemCount = #t
+    for k, v in ipairs(t) do
+        reversedTable[itemCount + 1 - k] = v
+    end
+    return reversedTable
 end
 
 --[[
@@ -176,7 +269,7 @@ trait 'SoftDeletingTrait' is {
 }
 
 
-class 'Administrator' extends 'User' implements 'UserInterface' has 'SoftDeletingTrait' with {
+class 'Administrator' extends 'User' implements 'UserInterface' has 'SoftDeletingTrait' is {
 	
 	
 	
