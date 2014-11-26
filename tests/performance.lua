@@ -9,7 +9,7 @@ function time(title, f, times)
   local startTime = os.clock()
   for i=0,times do f() end
   local endTime = os.clock()
-  print( title .. ' x ' .. times .. ' took ' .. (endTime - startTime) .. ' seconds' )
+  print( '👍  ' .. title .. ' x ' .. times .. ' took ' .. (endTime - startTime) .. ' seconds' )
 end
 
 time('class creation', function()
