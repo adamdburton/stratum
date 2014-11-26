@@ -94,6 +94,7 @@ end
 -- Returns a new instance of a class
 
 function new(class, ...)
+	if not stratum.classes[class] then error('Cannot instanciate nonexistent class ' .. class) end
 	
 	local baseClass = {
 		__className = class,
@@ -126,6 +127,14 @@ function new(class, ...)
 			
 			if t.__properties[key] then
 				return t.__properties[key]
+			end
+			
+			-- Check if the key is an attribute
+			
+			local attributeMethod = 'get' .. key:sub(1,1):upper() .. key:sub(2) .. 'Attribute' -- http://stackoverflow.com/a/2421843
+			
+			if self[attributeMethod] then
+				return self[attributeMethod](self)
 			end
 			
 			-- Check if the method exists in a trait
