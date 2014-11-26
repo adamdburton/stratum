@@ -1,4 +1,4 @@
-dofile('../stratum/stratum.lua')
+require('stratum/stratum')
 
 class 'User' is {
 	
@@ -15,4 +15,4 @@ user.lastName = 'De Santa'
 
 assert(user.fullName == string.format('%s %s', user.firstName, user.lastName), 'superAdmin.fullName method should return ' .. string.format('%s %s', user.firstName, user.lastName))
 
-print('All attribute tests okay!')
+print('👍  All attribute tests okay!')

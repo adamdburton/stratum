@@ -1,3 +1,18 @@
+-- Utils
+
+local function reverseTable(tbl)
+    local reversed = {}
+    local i = #tbl + 1
+		
+    for k, v in ipairs(tbl) do
+        reversed[i - k] = v
+    end
+		
+    return reversed
+end
+
+-- Let's get started
+
 local stratum = {}
 
 -- Store classes, interfaces, traits
@@ -15,8 +30,8 @@ stratum.classStatics = {}
 
 -- Internal reference to the name of the latest defined class, use for applying extensions, implementations, traits, privates, publics, protecteds and statics
 
-local lastType = ''
-local lastName = ''
+local lastType = nil
+local lastName = nil
 
 --[[
 	Class creation functions
@@ -34,8 +49,6 @@ end
 -- Creates a new interface
 
 function interface(name)
-	if not lastName then error('No classes have been defined') end
-	
 	stratum.interfaces[name] = {}
 	
 	lastType = 'interfaces'
@@ -45,8 +58,6 @@ end
 -- Creates a new trait
 
 function trait(name)
-	if not lastName then error('No classes have been defined') end
-	
 	stratum.traits[name] = {}
 	
 	lastType = 'traits'
@@ -56,9 +67,9 @@ end
 -- Extends a class from another, for example `class 'Administrator' extends 'User'` would extend the the Administator class from the User class
 
 function extends(name)
-	if not lastName then error('No classes have been defined') end
-	if not lastType == 'classes' then error('Only classes can extend other classes') end
-	if not stratum.classes[name] then error('Cannot extend with nonexistent class ' .. name) end
+	assert(lastName, 'No classes have been defined')
+	assert(lastType == 'classes', 'Only classes can extend other classes')
+	assert(stratum.classes[name], 'Cannot extend ' .. lastName .. ' with nonexistent class ' .. name)
 	
 	stratum.classExtends[lastName] = name
 end
@@ -66,9 +77,11 @@ end
 -- Makes a class implements an interface
 
 function implements(name)
-	if not lastName then error('No classes have been defined') end
-	if not lastType == 'classes' then error('Only classes can implement interfaces') end
-	if not stratum.classes[name] then error('Cannot implement nonexistent interface ' .. name) end
+	assert(lastName, 'No classes have been defined')
+	assert(lastType == 'classes', 'Only classes can implement interfaces')
+	assert(stratum.classes[name], 'Cannot implement nonexistent interface ' .. name)
+	
+	stratum.classImplements[lastName] = stratum.classImplements[lastName] or {}
 	
 	table.insert(stratum.classImplements[lastName], name)
 end
@@ -76,9 +89,11 @@ end
 -- Makes a class use a trait
 
 function has(name)
-	if not lastName then error('No classes have been defined') end
-	if not lastType == 'classes' then error('Only classes can have traits') end
-	if not stratum.classes[name] then error('Cannot use nonexistent trait ' .. name) end
+	assert(lastName, 'No classes have been defined')
+	assert(lastType == 'classes', 'Only classes can have traits')
+	assert(stratum.traits[name], 'Cannot use nonexistent trait ' .. name)
+	
+	stratum.classTraits[lastName] = stratum.classTraits[lastName] or {}
 	
 	table.insert(stratum.classTraits[lastName], name)
 end
@@ -86,18 +101,29 @@ end
 -- Provides the body of a class
 
 function is(tbl)
-	if not lastName then error('No classes have been defined') end
+	assert(lastName, 'No classes, interfaces or traits have been defined')
 	
-	stratum.classes[lastName] = tbl
+	-- Check that this class implements all functions defined in it's interfaces if it's a class
+	
+	if lastType == 'classes' and stratum.classImplements[lastName] then
+		for _, interface in pairs(stratum.classImplements[lastName]) do
+			for method, _ in pairs(interface) do
+				assert(tbl[method], 'Class' .. lastName .. ' must implement method ' .. method .. '')
+			end
+		end
+	end
+	
+	stratum[lastType][lastName] = tbl
 end
 
 -- Returns a new instance of a class
 
 function new(class, ...)
-	if not stratum.classes[class] then error('Cannot instanciate nonexistent class ' .. class) end
+	assert(stratum.classes[class], 'Cannot instantiate nonexistent class ' .. class)
 	
 	local baseClass = {
 		__className = class,
+		__properties = {},
 		
 		__construct = function() end,
 		__destruct = function() end,
@@ -105,57 +131,58 @@ function new(class, ...)
 	
 	local classMeta = {
 		
-		__properties = {},
+		__attributes = {},
+		__traitOverrides = {},
 		
 		__index = function(self, key)
+			
+			-- Store the metatable here
+			
+			local mt = getmetatable(self)
+			
 			-- Check if we're trying to get the parent
 			
 			if key == 'parent' then
-				return function()
-					local classTable = stratum.classes[stratum.classExtends[self.__className]]
-					local mt = getmetatable(self)
+				
+				--PrintTable(debug.getinfo(2))
+				
+				if stratum.classExtends[self.__className] then
+					return function()
+						local classTable = stratum.classes[stratum.classExtends[self.__className]]
 					
-					classTable.__className = stratum.classExtends[self.__className] -- Change the className to the parents so the __index lookup for parent doesn't loop
+						classTable.__className = stratum.classExtends[self.__className] -- Change the className to the parents so the __index lookup for parent doesn't loop
 					
-					return setmetatable(classTable, mt)
+						return setmetatable(classTable, mt)
+					end
 				end
 			end
 			
-			-- Check if the key is in our properties
+			-- Check if the key is a property
 			
-			local t = getmetatable(self)
-			
-			if t.__properties[key] then
+			if self.__properties[key] then
 				return t.__properties[key]
 			end
 			
 			-- Check if the key is an attribute
 			
-			local attributeMethod = 'get' .. key:sub(1,1):upper() .. key:sub(2) .. 'Attribute' -- http://stackoverflow.com/a/2421843
-			
-			if self[attributeMethod] then
-				return self[attributeMethod](self)
+			if mt.__attributes[key] then
+				return mt.__attributes[key](self)
 			end
 			
-			-- Check if the method exists in a trait
-			
-			for k, v in pairs(stratum.classTraits) do
-				
-			end
-			
-			-- Or if not, pass it to the parent
+			-- Try pass it to the parent
 			
 			if stratum.classExtends[self.__className] then
+				-- Pass the function from the parent, it gets called in the context of this class, and even if the method doesn't exist, the __index method passes it up again
 				return stratum.classes[stratum.classExtends[self.__className]][key]
 			end
+			
+			-- Or nothing!
 		end,
 		
 		__newindex = function(self, key, value)
-			-- Add this to our properties in the metatable
+			-- Add this to the properties in the metatable
 			
-			local t = getmetatable(self)
-			t.__properties[key] = value
-			setmetatable(self, t)
+			self.__properties[key] = value
 		end
 	}
 	
@@ -169,28 +196,28 @@ function new(class, ...)
 		parentClass = stratum.classExtends[parentClass]
 	end
 	
+	table.insert(parentClasses, class)
+	
 	local classTable = {}
 	
 	for k, v in pairs(baseClass) do
 		classTable[k] = v
 	end
 	
-	if #parentClasses then
-		-- Extended class, start from the bottom
-		
-		for _, nextClass in pairs(table.reverse(parentClasses)) do
-			for k, v in pairs(stratum.classes[nextClass]) do
+	for _, nextClass in pairs(reverseTable(parentClasses)) do
+		for k, v in pairs(stratum.classes[nextClass]) do
+			classTable[k] = v
+		end
+	end
+	
+	-- Override any trait methods
+	
+	if stratum.classTraits[class] then
+		for _, trait in pairs(stratum.classTraits[class]) do
+			for k, v in pairs(stratum.traits[trait]) do
 				classTable[k] = v
 			end
 		end
-		
-		for k, v in pairs(stratum.classes[class]) do
-			classTable[k] = v
-		end
-	else
-		-- Base class, the normal table is fine
-		
-		classTable = stratum.classes[class]
 	end
 	
 	setmetatable(classTable, classMeta)
@@ -198,12 +225,6 @@ function new(class, ...)
 	classTable:__construct(unpack({ ... }))
 	
 	return classTable
-end
-
--- Exceptions
-
-function throw(exception)
-	error()
 end
 
 -- Stolen from Garry's Mod
@@ -245,43 +266,3 @@ function PrintTable ( t, indent, done )
 	end
 
 end
-
--- https://gist.github.com/balaam/3122129
-
-function table.reverse(t)
-    local reversedTable = {}
-    local itemCount = #t
-    for k, v in ipairs(t) do
-        reversedTable[itemCount + 1 - k] = v
-    end
-    return reversedTable
-end
-
---[[
- 
-interface 'UserInterface' is {
-	
-	SetName = function(name) end -- Any function content is ignored
-	
-}
-
-trait 'SoftDeletingTrait' is {
-	
-	delete = function(self)
-		self.attributes['deleted_at'] = os.time()
-	end,
-
-	forceDelete = function(self)
-		self.query.delete()
-	end
-	
-}
-
-
-class 'Administrator' extends 'User' implements 'UserInterface' has 'SoftDeletingTrait' is {
-	
-	
-	
-}
-
-]]--

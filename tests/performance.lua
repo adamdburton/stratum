@@ -1,4 +1,4 @@
-dofile('../stratum/stratum.lua')
+require('stratum/stratum')
 
 -- https://github.com/kikito/middleclass/blob/master/performance/time.lua
 
@@ -41,4 +41,12 @@ local b = new 'B'
 
 time('inherited method invocation', function()
   b:foo()
+end)
+
+class 'C' extends 'B'
+
+local c = new 'C'
+
+time('inherited x2 method invocation', function()
+  c:foo()
 end)
