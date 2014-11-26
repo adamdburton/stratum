@@ -64,3 +64,5 @@ assert(superAdmin:existsInUserButNotAdministratorOrSuperAdministrator() == super
 assert(superAdmin:existsInAdministratorButNotSuperAdministrator() == superAdmin.lastName, 'superAdmin:existsInAdministratorButNotSuperAdministrator() should return ' .. superAdmin.lastName)
 assert(superAdmin:parent():isSuperAdministrator() == false, 'superAdmin:parent():isSuperAdministrator() method should return false from User:isSuperAdministrator()')
 assert(superAdmin:parent():parent():isSuperAdministrator() == false, 'superAdmin:parent():isSuperAdministrator() method should return false from User:isSuperAdministrator()')
+
+print('All tests okay!')
