@@ -96,19 +96,26 @@ class 'TableDataInterface' implements 'DataInterface' is {
 trait 'Shareable' is {
   
   share = function(self, text)
-    print('Sharing ' .. self.__className .. ': ' .. text)
+    self:original():share('Trait! ' .. text)	
   end
   
 }
 
 class 'Post' has 'Shareable' -- The `is {}` declaration is missing here because there is no class body
-class 'Comment' has 'Shareable' -- Same again
+
+class 'Comment' has 'Shareable' is {
+	
+	share = function(self, text)
+		print('Sharing ' .. self.__className .. ': ' .. text)
+	end
+	
+}
 
 local post = new 'Post'
-post:share('I just shared a post with stratum!')
+post:share('I just shared a post with stratum!') -- Errors, there is no share method in the Post class
  
 local comment = new 'Comment';
-comment:share('I just shared a comment with stratum')
+comment:share('I just shared a comment with stratum') -- The trait calls the share method with some text prepended
 ```
 
 ####Class Attributes

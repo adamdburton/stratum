@@ -1,9 +1,9 @@
 require('stratum/stratum')
 
-trait 'SoftDeleting' is {
+trait 'SoftDeletingTrait' is {
 	
 	where = function(self, field, value)
-		return self:parent():where('deletedAt', 0):where(field, value) -- Calls the parent where function and returns the parent object
+		return self:original():where('deletedAt', 0):where(field, value) -- Calls the original where function and returns the parent object
 	end,
 	
 	delete = function(self)
@@ -15,17 +15,17 @@ trait 'SoftDeleting' is {
 	
 	forceDelete = function(self)
 		-- Call the parent function from the class
-		self:parent():delete()
+		self:original():delete()
 	end
 	
 }
 
-class 'User' has 'SoftDeleting' is {
+class 'User' has 'SoftDeletingTrait' is {
 	
 	whereParameters = {},
 	
-	where = function(field, value)
-		table.insert(self.whereParameters, { field, value })
+	where = function(self, field, value)
+		self.whereParameters[field] = value
 		
 		return self
 	end,
@@ -39,7 +39,8 @@ class 'User' has 'SoftDeleting' is {
 
 local user = new 'User'
 
-assert(user:delete() == 'Delete in trait', 'user:delete() should call the delete method in the trait')
-assert(user:parent():delete() == 'Delete in class', 'user:parent():delete() should call the delete method in the class')
+assert(user:delete() == 'Delete in trait', 'user:delete() should call the delete method in the SoftDeletingTrait trait')
+assert(user:original():delete() == 'Delete in model', 'user:original():delete() should call the delete method in the User class')
+assert(tableLength(user:where('abc', 123).whereParameters) == 2, 'user:where(\'abc\', 123) should return a table with 2 indexes')
 
 print('👍  All trait tests okay!')

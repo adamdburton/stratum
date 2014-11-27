@@ -2,6 +2,8 @@ require('stratum/stratum')
 
 class 'User' is {
 	
+	test = 123,
+	
 	getFullNameAttribute = function()
 		return string.format('%s %s', self.firstName, self.lastName)
 	end,

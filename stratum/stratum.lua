@@ -1,16 +1,3 @@
--- Utils
-
-local function reverseTable(tbl)
-    local reversed = {}
-    local i = #tbl + 1
-		
-    for k, v in ipairs(tbl) do
-        reversed[i - k] = v
-    end
-		
-    return reversed
-end
-
 -- Let's get started
 
 local stratum = {}
@@ -40,7 +27,98 @@ local lastName = nil
 -- Creates a new class
 
 function class(name)
-	stratum.classes[name] = {}
+	local classTable = {
+		__className = name,
+		
+		__properties = {},
+		
+		__construct = function() end,
+		__destruct = function() end,
+	}
+	
+	local classMeta = {
+		__attributes = {},
+		
+		__methods = {},
+		__traitMethods = {},
+		__properties = {},
+		
+		__index = function(self, key)
+			
+			-- Store the metatable here
+			
+			local mt = getmetatable(self)
+			
+			-- Check if we're trying to get the parent
+			
+			if key == 'parent' and stratum.classExtends[self.__className] then
+				return function()
+					return setmetatable(self, stratum.classMetas[stratum.classExtends[self.__className]])
+				end
+			end
+			
+			-- Check if we're trying to get the original class
+			
+			if key == 'original' and stratum.classTraits[self.__className] then
+				return function()
+					return setmetatable({}, {
+						__index = function(s, k)
+							if self.__properties[k] then
+								return self.__properties[k]
+							end
+							
+							if mt.__attributes[k] then
+								return mt.__attributes[k](self)
+							end
+							
+							if mt.__methods[k] then
+								return mt.__methods[k]
+							end
+						end
+					})
+				end
+			end
+			
+			-- Check if the key is a property
+			
+			if self.__properties[key] then
+				return self.__properties[key]
+			end
+			
+			-- Check if the key is an attribute (and call the function)
+			
+			if mt.__attributes[key] then
+				return mt.__attributes[key](self)
+			end
+			
+			-- Check if the key is a trait method
+			
+			if mt.__traitMethods[key] then
+				return mt.__traitMethods[key]
+			end
+			
+			-- Check if the key is a method
+			
+			if mt.__methods[key] then
+				return mt.__methods[key]
+			end
+			
+			-- Or nothing!
+		end,
+		
+		__newindex = function(self, key, value)
+			local mt = getmetatable(self)
+			
+			if type(value) == 'function' then
+				mt.__methods[key] = value -- Shares the method umong all instances
+			else
+				self.__properties[key] = value
+			end
+		end
+	}
+	
+	stratum.classes[name] = classTable
+	stratum.classMetas[name] = classMeta
 	
 	lastType = 'classes'
 	lastName = name
@@ -64,22 +142,40 @@ function trait(name)
 	lastName = name
 end
 
--- Extends a class from another, for example `class 'Administrator' extends 'User'` would extend the the Administator class from the User class
+-- Extends a class from another
 
-function extends(name)
+function extends(name) -- user
 	assert(lastName, 'No classes have been defined')
 	assert(lastType == 'classes', 'Only classes can extend other classes')
 	assert(stratum.classes[name], 'Cannot extend ' .. lastName .. ' with nonexistent class ' .. name)
 	
+	-- Copy the meta table from the base class to the class being defined now
+	
+	for k, v in pairs(stratum.classMetas[name].__attributes) do
+		stratum.classMetas[lastName].__attributes[k] = v
+	end
+	
+	for k, v in pairs(stratum.classMetas[name].__methods) do
+		stratum.classMetas[lastName].__methods[k] = v
+	end
+	
+	for k, v in pairs(stratum.classMetas[name].__traitMethods) do
+		stratum.classMetas[lastName].__traitMethods[k] = v
+	end
+	
+	for k, v in pairs(stratum.classMetas[name].__properties) do
+		stratum.classMetas[lastName].__properties[k] = v
+	end
+	
 	stratum.classExtends[lastName] = name
 end
 
--- Makes a class implements an interface
+-- Makes a class implement an interface
 
 function implements(name)
 	assert(lastName, 'No classes have been defined')
 	assert(lastType == 'classes', 'Only classes can implement interfaces')
-	assert(stratum.classes[name], 'Cannot implement nonexistent interface ' .. name)
+	assert(stratum.interfaces[name], 'Cannot implement nonexistent interface ' .. name)
 	
 	stratum.classImplements[lastName] = stratum.classImplements[lastName] or {}
 	
@@ -93,6 +189,12 @@ function has(name)
 	assert(lastType == 'classes', 'Only classes can have traits')
 	assert(stratum.traits[name], 'Cannot use nonexistent trait ' .. name)
 	
+	-- Override any trait methods in lastName with trait name
+	
+	for k, v in pairs(stratum.traits[name]) do
+		stratum.classMetas[lastName].__traitMethods[k] = v
+	end
+	
 	stratum.classTraits[lastName] = stratum.classTraits[lastName] or {}
 	
 	table.insert(stratum.classTraits[lastName], name)
@@ -103,99 +205,43 @@ end
 function is(tbl)
 	assert(lastName, 'No classes, interfaces or traits have been defined')
 	
-	-- Check that this class implements all functions defined in it's interfaces if it's a class
-	
 	if lastType == 'classes' then
+		
+		-- Check that this class implements all functions defined in it's interfaces
+		
 		if stratum.classImplements[lastName] then
 			for _, interface in pairs(stratum.classImplements[lastName]) do
-				for method, _ in pairs(interface) do
+				for method, _ in pairs(stratum.interfaces[interface]) do
 					assert(tbl[method], 'Class' .. lastName .. ' must implement method ' .. method .. '')
 				end
 			end
 		end
-	
-		-- Loop the table, moving any non-methods to the properties
-	
+		
+		-- Loop the table
+		
 		for k, v in pairs(tbl) do
-			if type(v) == 'function'
-		end
-	
-		-- Store the metatable for this class
-	
-		stratum.classMetas[lastName] = {
-		
-			__attributes = {},
-			__traitOverrides = {},
-		
-			__index = function(self, key)
+			if type(v) == 'function' then
+				local match = k:match('get(%a+)Attribute')
 			
-				-- Store the metatable here
-			
-				local mt = getmetatable(self)
-			
-				-- Check if we're trying to get the parent
-			
-				if key == 'parent' then
-				
-					--PrintTable(debug.getinfo(2))
-				
-					if stratum.classExtends[self.__className] then
-						return function()
-							local classTable = stratum.classes[stratum.classExtends[self.__className]]
+				if match then
+					-- Add any attribute methods to the __attributes meta table
 					
-							classTable.__className = stratum.classExtends[self.__className] -- Change the className to the parents so the __index lookup for parent doesn't loop
-					
-							return setmetatable(classTable, mt)
-						end
-					end
-				end
-				
-				-- Check if the key is a trait method
-				
-				if mt.__traitOverrides[key] then
-					return setmettable(mt.__traitOverrides[key], {
-						__index = function(s, k)
-							if k == 'parent' then
-								return self -- This allows calling self:parent() from inside the trait, which gets the class instead of the actual parent
-						end
-					})
-				end
-				
-				-- Check if the key is a property
-				
-				if self.__properties[key] then
-					return self.__properties[key]
-				end
-				
-				-- Check if the key is an attribute
-				
-				if mt.__attributes[key] then
-					return mt.__attributes[key](self)
-				end
-				
-				-- Try pass it to the parent
-				
-				if stratum.classExtends[self.__className] then
-					-- Pass the function from the parent, it gets called in the context of this class, and even if the method doesn't exist, the __index method passes it up again
-					return stratum.classes[stratum.classExtends[self.__className]][key]
-				end
-			
-				-- Or nothing!
-			end,
-		
-			__newindex = function(self, key, value)
-				if type(value) == 'function' then
-					mt.__methods[key] = value
+					stratum.classMetas[lastName].__attributes[match:sub(1, 1):lower() .. match:sub(2)] = v
 				else
-					self.__properties[key] = value
+					-- Add any non-attribute methods to the __methods meta table
+					
+					stratum.classMetas[lastName].__methods[k] = v
 				end
+			else
+				-- Add any non-methods to the __properties meta table
+				
+				stratum.classMetas[lastName].__properties[k] = v
 			end
-		}
+		end
+		
+	else
+		stratum[lastType][lastName] = tbl
 	end
-	
-	-- Store
-	
-	stratum[lastType][lastName] = tbl
 	
 	-- Reset
 	
@@ -208,67 +254,15 @@ end
 function new(class, ...)
 	assert(stratum.classes[class], 'Cannot instantiate nonexistent class ' .. class)
 	
-	local baseClass = {
-		__className = class,
-		__properties = {},
-		
-		__construct = function() end,
-		__destruct = function() end,
-	}
-	
-	-- Loop through the parent classes (if any)
-	
-	local parentClasses = {}
-	local parentClass = class
-	
-	while stratum.classExtends[parentClass] do
-		table.insert(parentClasses, stratum.classExtends[parentClass])
-		parentClass = stratum.classExtends[parentClass]
-	end
-	
-	-- Add in the top level
-	
-	table.insert(parentClasses, class)
-	
-	-- Build up the table
-	
-	local classTable = {}
-	
-	-- Start with the base class
-	
-	for k, v in pairs(baseClass) do
-		if type(v) == 'function' then
-			classTable[k] = v
-		else
-			classTable.__properties[k] = v
-		end
-	end
-	
-	-- Loop the extending classes
-	
-	for _, nextClass in pairs(reverseTable(parentClasses)) do
-		for k, v in pairs(stratum.classes[nextClass]) do
-			if type(v) == 'function' then
-				classTable[k] = v
-			else
-				classTable.__properties[k] = v
-			end
-		end
-	end
-	
-	-- Override any trait methods
-	
-	if stratum.classTraits[class] then
-		for _, trait in pairs(stratum.classTraits[class]) do
-			for k, v in pairs(stratum.traits[trait]) do
-				classTable[k] = v
-			end
-		end
-	end
-	
 	-- Set the meta
 	
-	setmetatable(classTable, stratum.classMetas[class])
+	local classTable = setmetatable(stratum.classes[class], stratum.classMetas[class])
+	
+	-- Add any default properties in
+	
+	for k, v in pairs(stratum.classMetas[class].__properties) do
+		classTable.__properties[k] = v
+	end
 	
 	-- Call the constructor
 	
@@ -277,44 +271,4 @@ function new(class, ...)
 	-- Done!
 	
 	return classTable
-end
-
--- Stolen from Garry's Mod
-
-function PrintTable ( t, indent, done )
-
-	done = done or {}
-	indent = indent or 0
-	local keys = {}
-
-	for key, value in pairs (t) do
-
-		table.insert(keys, key)
-
-	end
-
-	table.sort(keys, function(a, b)
-		return tostring(a) < tostring(b)
-	end)
-
-	for i = 1, #keys do
-		key = keys[i]
-		value = t[key]
-		print( string.rep ("\t", indent) )
-
-		if  ( type(value) == 'table' and not done[value] ) then
-
-			done[value] = true
-			print( tostring(key) .. ":" .. "\n" );
-			PrintTable (value, indent + 2, done)
-
-		else
-
-			print( tostring (key) .. "\t=\t" )
-			print( tostring(value) .. "\n" )
-
-		end
-
-	end
-
 end
