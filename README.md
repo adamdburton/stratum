@@ -1,7 +1,7 @@
 stratum
 =======
 
-Stratum is a class system for lua with inheritance, interfaces and traits. Definitions have a php-like style using some syntactic sugar.
+Stratum is a class system for lua with inheritance, interfaces, traits and statics. Definitions have a php-like style using some syntactic sugar.
 
 ##Features
 
@@ -118,23 +118,39 @@ local comment = new 'Comment';
 comment:share('I just shared a comment with stratum') -- The trait calls the share method with some text prepended
 ```
 
-####Class Attributes
+####Static Methods and Properties
 
 ```lua
-class 'User' is {
-  
-  getFullNameAttribute = function(self)
-    return string.format('%s %s', self.firstName, self.lastName)
-  end
-  
+local User = class 'User' is {
+	
+	exists = false,
+	lastID = 1,
+	
+	create = function(name, email, password) -- static function, no self argument
+		local user = new 'User'
+		
+		user.name = name
+		
+		user:save()
+		
+		return user
+	end,
+	
+	save = function(self)
+		-- Save to the database?
+		self.exists = true -- instance property
+		
+		self:static().lastID = self:static().lastID + 1 -- static property
+		
+		return true
+	end
+	
 }
 
-local user = new 'User'
+local user = User.create('Test Name') -- User instance
 
-user.firstName = 'Michael'
-user.lastName = 'De Santa'
+print(User.lastID) -- Static property
 
-print(user.fullName) -- Michael De Santa
 ```
 
 ####Chaining

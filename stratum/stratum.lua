@@ -24,6 +24,32 @@ local lastName = nil
 	Class creation functions
 ]]
 
+local function _staticClass(name)
+	-- Build a table up for returning the static object
+	
+	return setmetatable({ __className = name, new = function(...) return new (self.__className, unpack({ ... })) end }, {
+		
+		__index = function(s, k)
+			if stratum.classMetas[s.__className].__methods[k] then
+				return stratum.classMetas[s.__className].__methods[k]
+			end
+			
+			if stratum.classMetas[s.__className].__properties[k] then
+				return stratum.classMetas[s.__className].__staticProperties[k]
+			end
+		end,
+		
+		__newindex = function(s, k, v)
+			if type(v) == 'function' then
+				stratum.classMetas[s.__className].__methods[k] = v
+			else
+				stratum.classMetas[s.__className].__staticProperties[k] = v
+			end
+		end
+		
+	})
+end
+
 -- Creates a new class
 
 function class(name)
@@ -56,6 +82,10 @@ function class(name)
 			end
 		end,
 		
+		static = function(self)
+			return _staticClass(self.__className)
+		end,
+		
 		__construct = function() end,
 		__destruct = function() end,
 	}
@@ -64,12 +94,15 @@ function class(name)
 		
 		__methods = {},
 		__traitMethods = {},
-		__properties = {},
 		
-			__index = function(self, key)
+		__properties = {},
+		__staticProperties = {},
+		
+		__index = function(self, key)
+			
 			-- Check if the key is a property
 			
-			if self.__properties[key] then
+			if self.__properties[key] ~= nil then
 				return self.__properties[key]
 			end
 			
@@ -106,22 +139,12 @@ function class(name)
 	stratum.classes[name] = classTable
 	stratum.classMetas[name] = classMeta
 	
-	local t = setmetatable({ __className = name }, {
-		__index = function(s, k)
-			if stratum.classMetas[s.__className].__methods[k] then
-				return stratum.classMetas[s.__className].__methods[k]
-			end
-			
-			if stratum.classMetas[s.__className].__properties[k] then
-				return stratum.classMetas[s.__className].__properties[k]
-			end
-		end
-	})
-	
 	lastType = 'classes'
 	lastName = name
 	
-	return t
+	-- Return the table
+	
+	return _staticClass(name)
 end
 
 -- Creates a new interface
@@ -224,6 +247,7 @@ function is(tbl)
 				-- Add any non-methods to the __properties meta table
 				
 				stratum.classMetas[lastName].__properties[k] = v
+				stratum.classMetas[lastName].__staticProperties[k] = v
 			end
 		end
 		
@@ -242,14 +266,22 @@ end
 function new(class, ...)
 	assert(stratum.classes[class], 'Cannot instantiate nonexistent class ' .. class)
 	
+	-- Copy the class table
+	
+	local classTable = {}
+	
+	for k, v in pairs(stratum.classes[class]) do
+		classTable[k] = v
+	end
+	
 	-- Set the meta
 	
-	local classTable = setmetatable(stratum.classes[class], stratum.classMetas[class])
+	setmetatable(classTable, stratum.classMetas[class])
 	
 	-- Add any default properties in
 	
 	for k, v in pairs(stratum.classMetas[class].__properties) do
-		classTable.__properties[k] = v
+		classTable[k] = v
 	end
 	
 	-- Call the constructor
