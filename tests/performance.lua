@@ -2,25 +2,35 @@ require('stratum/stratum')
 
 -- https://github.com/kikito/middleclass/blob/master/performance/time.lua
 
-function time(title, f, times)
+function time(title, f)
+
   collectgarbage()
-  
-  local times = times or 10000
+
   local startTime = os.clock()
-  for i=0,times do f() end
+
+  for i=0,10000 do f() end
+
   local endTime = os.clock()
-  print( '👍  ' .. title .. ' x ' .. times .. ' took ' .. (endTime - startTime) .. ' seconds' )
+
+  print( title, endTime - startTime )
+
 end
 
-time('class creation', function()
+-- Class creation
+
+time('Class creation', function()
 	class 'A'
 end)
 
+-- Instance creation
+
 class 'A'
 
-time('instance creation', function()
+time('Instance creation', function()
 	local a = new 'A'
 end)
+
+-- Instance method invocation
 
 class 'A' is {
 	
@@ -31,22 +41,36 @@ class 'A' is {
 
 local a = new 'A'
 
-time('instance method invocation', function()
+time('Instance method invocation', function()
 	a:foo()
 end)
+
+-- Inherited method invocation
 
 class 'B' extends 'A'
 
 local b = new 'B'
 
-time('inherited method invocation', function()
+time('Inherited method invocation', function()
   b:foo()
 end)
 
-class 'C' extends 'B'
+-- Static calls
 
-local c = new 'C'
+local A = class 'A' is {
 
-time('inherited x2 method invocation', function()
-  c:foo()
+	bar = function()
+		return 2
+	end
+	
+}
+
+time('class method invocation', function()
+  A.bar()
+end)
+
+local B = class 'B' extends 'A'
+
+time('inherited class method invocation', function()
+  B.bar()
 end)

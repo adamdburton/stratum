@@ -32,64 +32,50 @@ function class(name)
 		
 		__properties = {},
 		
+		parent = function(self)
+			if stratum.classExtends[self.__className] then
+				return setmetatable(self, stratum.classMetas[stratum.classExtends[self.__className]])
+			end
+		end,
+		
+		original = function(self)
+			if stratum.classTraits[self.__className] then
+				return setmetatable({}, {
+					__index = function(s, k)
+						if self.__properties[k] then
+							return self.__properties[k]
+						end
+						
+						local mt = getmetatable(self)
+					
+						if mt.__methods[k] then
+							return mt.__methods[k]
+						end
+					end
+				})
+			end
+		end,
+		
 		__construct = function() end,
 		__destruct = function() end,
 	}
 	
 	local classMeta = {
-		__attributes = {},
 		
 		__methods = {},
 		__traitMethods = {},
 		__properties = {},
 		
-		__index = function(self, key)
-			
-			-- Store the metatable here
-			
-			local mt = getmetatable(self)
-			
-			-- Check if we're trying to get the parent
-			
-			if key == 'parent' and stratum.classExtends[self.__className] then
-				return function()
-					return setmetatable(self, stratum.classMetas[stratum.classExtends[self.__className]])
-				end
-			end
-			
-			-- Check if we're trying to get the original class
-			
-			if key == 'original' and stratum.classTraits[self.__className] then
-				return function()
-					return setmetatable({}, {
-						__index = function(s, k)
-							if self.__properties[k] then
-								return self.__properties[k]
-							end
-							
-							if mt.__attributes[k] then
-								return mt.__attributes[k](self)
-							end
-							
-							if mt.__methods[k] then
-								return mt.__methods[k]
-							end
-						end
-					})
-				end
-			end
-			
+			__index = function(self, key)
 			-- Check if the key is a property
 			
 			if self.__properties[key] then
 				return self.__properties[key]
 			end
 			
-			-- Check if the key is an attribute (and call the function)
+			-- Store the metatable here
 			
-			if mt.__attributes[key] then
-				return mt.__attributes[key](self)
-			end
+			local mt = getmetatable(self)
 			
 			-- Check if the key is a trait method
 			
@@ -120,8 +106,22 @@ function class(name)
 	stratum.classes[name] = classTable
 	stratum.classMetas[name] = classMeta
 	
+	local t = setmetatable({ __className = name }, {
+		__index = function(s, k)
+			if stratum.classMetas[s.__className].__methods[k] then
+				return stratum.classMetas[s.__className].__methods[k]
+			end
+			
+			if stratum.classMetas[s.__className].__properties[k] then
+				return stratum.classMetas[s.__className].__properties[k]
+			end
+		end
+	})
+	
 	lastType = 'classes'
 	lastName = name
+	
+	return t
 end
 
 -- Creates a new interface
@@ -150,10 +150,6 @@ function extends(name) -- user
 	assert(stratum.classes[name], 'Cannot extend ' .. lastName .. ' with nonexistent class ' .. name)
 	
 	-- Copy the meta table from the base class to the class being defined now
-	
-	for k, v in pairs(stratum.classMetas[name].__attributes) do
-		stratum.classMetas[lastName].__attributes[k] = v
-	end
 	
 	for k, v in pairs(stratum.classMetas[name].__methods) do
 		stratum.classMetas[lastName].__methods[k] = v
@@ -212,7 +208,7 @@ function is(tbl)
 		if stratum.classImplements[lastName] then
 			for _, interface in pairs(stratum.classImplements[lastName]) do
 				for method, _ in pairs(stratum.interfaces[interface]) do
-					assert(tbl[method], 'Class' .. lastName .. ' must implement method ' .. method .. '')
+					assert(tbl[method], 'Class ' .. lastName .. ' must implement method ' .. method .. '')
 				end
 			end
 		end
@@ -221,17 +217,9 @@ function is(tbl)
 		
 		for k, v in pairs(tbl) do
 			if type(v) == 'function' then
-				local match = k:match('get(%a+)Attribute')
-			
-				if match then
-					-- Add any attribute methods to the __attributes meta table
-					
-					stratum.classMetas[lastName].__attributes[match:sub(1, 1):lower() .. match:sub(2)] = v
-				else
-					-- Add any non-attribute methods to the __methods meta table
-					
-					stratum.classMetas[lastName].__methods[k] = v
-				end
+				-- Add any methods to the __methods meta table
+				
+				stratum.classMetas[lastName].__methods[k] = v
 			else
 				-- Add any non-methods to the __properties meta table
 				

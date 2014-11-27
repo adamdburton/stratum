@@ -4,36 +4,27 @@ class 'User' is {
 	
 	test = 123,
 	
-	getFullNameAttribute = function()
+	fullName = function(self)
 		return string.format('%s %s', self.firstName, self.lastName)
 	end,
 	
-	isAdministrator = function()
+	isAdministrator = function(self)
 		return false
 	end,
 		
-	isSuperAdministrator = function()
+	isSuperAdministrator = function(self)
 		return false
 	end,
 		
 	existsInUserButNotAdministratorOrSuperAdministrator = function(self)
-		return self.firstName
+		return self:fullName()
 	end
 	
 }
 
---local user = new 'User'
-
---PrintTable(user)
-
---user.firstName = 'Michael'
---user.lastName = 'De Santa'
-
---print(user.fullName .. (user:isAdministrator() and 'is' or 'is not') .. ' an administrator!')
-
 class 'Administrator' extends 'User' is {
 	
-	isAdministrator = function()
+	isAdministrator = function(self)
 		return true
 	end,
 	
@@ -50,7 +41,7 @@ class 'SuperAdministrator' extends 'Administrator' is {
 		return self:parent():isAdministrator()
 	end,
 	
-	isSuperAdministrator = function()
+	isSuperAdministrator = function(self)
 		return true
 	end
 	
@@ -61,8 +52,9 @@ local superAdmin = new 'SuperAdministrator'
 superAdmin.firstName = 'Trevor'
 superAdmin.lastName = 'Phillips'
 
+assert(superAdmin.test == 123, 'superAdmin.test property should be 123')
 assert(superAdmin:isSuperAdministrator() == true, 'superAdmin:isSuperAdministrator() method should return true')
-assert(superAdmin:existsInUserButNotAdministratorOrSuperAdministrator() == superAdmin.firstName, 'superAdmin:existsInUserButNotAdministratorOrSuperAdministrator() should return ' .. superAdmin.firstName)
+assert(superAdmin:existsInUserButNotAdministratorOrSuperAdministrator() == string.format('%s %s', superAdmin.firstName, superAdmin.lastName), 'superAdmin:existsInUserButNotAdministratorOrSuperAdministrator() should return ' .. superAdmin.firstName)
 assert(superAdmin:existsInAdministratorButNotSuperAdministrator() == superAdmin.lastName, 'superAdmin:existsInAdministratorButNotSuperAdministrator() should return ' .. superAdmin.lastName)
 assert(superAdmin:parent():isSuperAdministrator() == false, 'superAdmin:parent():isSuperAdministrator() method should return false from User:isSuperAdministrator()')
 assert(superAdmin:parent():parent():isSuperAdministrator() == false, 'superAdmin:parent():isSuperAdministrator() method should return false from User:isSuperAdministrator()')
