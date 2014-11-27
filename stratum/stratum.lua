@@ -21,12 +21,12 @@ stratum.classes = {}
 stratum.interfaces = {}
 stratum.traits = {}
 
--- Store per class extensions, implementations, traits and statics
+-- Store per class meta, extensions, implementations, traits
 
+stratum.classMetas = {}
 stratum.classExtends = {}
 stratum.classImplements = {}
 stratum.classTraits = {}
-stratum.classStatics = {}
 
 -- Internal reference to the name of the latest defined class, use for applying extensions, implementations, traits, privates, publics, protecteds and statics
 
@@ -105,15 +105,102 @@ function is(tbl)
 	
 	-- Check that this class implements all functions defined in it's interfaces if it's a class
 	
-	if lastType == 'classes' and stratum.classImplements[lastName] then
-		for _, interface in pairs(stratum.classImplements[lastName]) do
-			for method, _ in pairs(interface) do
-				assert(tbl[method], 'Class' .. lastName .. ' must implement method ' .. method .. '')
+	if lastType == 'classes' then
+		if stratum.classImplements[lastName] then
+			for _, interface in pairs(stratum.classImplements[lastName]) do
+				for method, _ in pairs(interface) do
+					assert(tbl[method], 'Class' .. lastName .. ' must implement method ' .. method .. '')
+				end
 			end
 		end
+	
+		-- Loop the table, moving any non-methods to the properties
+	
+		for k, v in pairs(tbl) do
+			if type(v) == 'function'
+		end
+	
+		-- Store the metatable for this class
+	
+		stratum.classMetas[lastName] = {
+		
+			__attributes = {},
+			__traitOverrides = {},
+		
+			__index = function(self, key)
+			
+				-- Store the metatable here
+			
+				local mt = getmetatable(self)
+			
+				-- Check if we're trying to get the parent
+			
+				if key == 'parent' then
+				
+					--PrintTable(debug.getinfo(2))
+				
+					if stratum.classExtends[self.__className] then
+						return function()
+							local classTable = stratum.classes[stratum.classExtends[self.__className]]
+					
+							classTable.__className = stratum.classExtends[self.__className] -- Change the className to the parents so the __index lookup for parent doesn't loop
+					
+							return setmetatable(classTable, mt)
+						end
+					end
+				end
+				
+				-- Check if the key is a trait method
+				
+				if mt.__traitOverrides[key] then
+					return setmettable(mt.__traitOverrides[key], {
+						__index = function(s, k)
+							if k == 'parent' then
+								return self -- This allows calling self:parent() from inside the trait, which gets the class instead of the actual parent
+						end
+					})
+				end
+				
+				-- Check if the key is a property
+				
+				if self.__properties[key] then
+					return self.__properties[key]
+				end
+				
+				-- Check if the key is an attribute
+				
+				if mt.__attributes[key] then
+					return mt.__attributes[key](self)
+				end
+				
+				-- Try pass it to the parent
+				
+				if stratum.classExtends[self.__className] then
+					-- Pass the function from the parent, it gets called in the context of this class, and even if the method doesn't exist, the __index method passes it up again
+					return stratum.classes[stratum.classExtends[self.__className]][key]
+				end
+			
+				-- Or nothing!
+			end,
+		
+			__newindex = function(self, key, value)
+				if type(value) == 'function' then
+					mt.__methods[key] = value
+				else
+					self.__properties[key] = value
+				end
+			end
+		}
 	end
 	
+	-- Store
+	
 	stratum[lastType][lastName] = tbl
+	
+	-- Reset
+	
+	lastType = nil
+	lastName = nil
 end
 
 -- Returns a new instance of a class
@@ -129,64 +216,7 @@ function new(class, ...)
 		__destruct = function() end,
 	}
 	
-	local classMeta = {
-		
-		__attributes = {},
-		__traitOverrides = {},
-		
-		__index = function(self, key)
-			
-			-- Store the metatable here
-			
-			local mt = getmetatable(self)
-			
-			-- Check if we're trying to get the parent
-			
-			if key == 'parent' then
-				
-				--PrintTable(debug.getinfo(2))
-				
-				if stratum.classExtends[self.__className] then
-					return function()
-						local classTable = stratum.classes[stratum.classExtends[self.__className]]
-					
-						classTable.__className = stratum.classExtends[self.__className] -- Change the className to the parents so the __index lookup for parent doesn't loop
-					
-						return setmetatable(classTable, mt)
-					end
-				end
-			end
-			
-			-- Check if the key is a property
-			
-			if self.__properties[key] then
-				return t.__properties[key]
-			end
-			
-			-- Check if the key is an attribute
-			
-			if mt.__attributes[key] then
-				return mt.__attributes[key](self)
-			end
-			
-			-- Try pass it to the parent
-			
-			if stratum.classExtends[self.__className] then
-				-- Pass the function from the parent, it gets called in the context of this class, and even if the method doesn't exist, the __index method passes it up again
-				return stratum.classes[stratum.classExtends[self.__className]][key]
-			end
-			
-			-- Or nothing!
-		end,
-		
-		__newindex = function(self, key, value)
-			-- Add this to the properties in the metatable
-			
-			self.__properties[key] = value
-		end
-	}
-	
-	-- Loop through the parent classes, building up the layers to reach the desired class
+	-- Loop through the parent classes (if any)
 	
 	local parentClasses = {}
 	local parentClass = class
@@ -196,17 +226,33 @@ function new(class, ...)
 		parentClass = stratum.classExtends[parentClass]
 	end
 	
+	-- Add in the top level
+	
 	table.insert(parentClasses, class)
+	
+	-- Build up the table
 	
 	local classTable = {}
 	
+	-- Start with the base class
+	
 	for k, v in pairs(baseClass) do
-		classTable[k] = v
+		if type(v) == 'function' then
+			classTable[k] = v
+		else
+			classTable.__properties[k] = v
+		end
 	end
+	
+	-- Loop the extending classes
 	
 	for _, nextClass in pairs(reverseTable(parentClasses)) do
 		for k, v in pairs(stratum.classes[nextClass]) do
-			classTable[k] = v
+			if type(v) == 'function' then
+				classTable[k] = v
+			else
+				classTable.__properties[k] = v
+			end
 		end
 	end
 	
@@ -220,9 +266,15 @@ function new(class, ...)
 		end
 	end
 	
-	setmetatable(classTable, classMeta)
+	-- Set the meta
+	
+	setmetatable(classTable, stratum.classMetas[class])
+	
+	-- Call the constructor
 	
 	classTable:__construct(unpack({ ... }))
+	
+	-- Done!
 	
 	return classTable
 end
