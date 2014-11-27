@@ -293,3 +293,19 @@ function new(class, ...)
 	
 	return classTable
 end
+
+-- Exceptions
+
+function throw(class, ...)
+	return new (class, unpack({ ... }))
+end
+
+local errorHandlers = {}
+
+function try(func)
+	
+end
+
+function catch(func)
+	
+end
