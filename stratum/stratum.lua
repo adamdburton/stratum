@@ -296,6 +296,10 @@ end
 
 -- Exceptions
 
+function exception(name)
+	return class (name)
+end
+
 function throw(class, ...)
 	return new (class, unpack({ ... }))
 end
@@ -306,6 +310,6 @@ function try(func)
 	
 end
 
-function catch(func)
+function catch(exception, func)
 	
 end
