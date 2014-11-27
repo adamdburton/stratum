@@ -140,7 +140,7 @@ print(user.fullName) -- Michael De Santa
 ####Chaining
 
 ```lua
-class 'SomeClass' extends 'AnotherCLass' implements 'SomeInterface' implements 'AnotherInterface' has 'SomeTrait' has 'AnotherTrait' is {
+class 'SomeClass' extends 'AnotherClass' implements 'SomeInterface' implements 'AnotherInterface' has 'SomeTrait' has 'AnotherTrait' is {
 
 }
 ```
