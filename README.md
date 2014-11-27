@@ -1,7 +1,7 @@
 stratum
 =======
 
-Stratum is a class system for lua with inheritance, interfaces, traits and statics. Definitions have a php-like style using some syntactic sugar.
+Stratum is a php-like class system for lua with inheritance, interfaces, traits and statics.
 
 ##Features
 
