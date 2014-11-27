@@ -1,5 +1,7 @@
 require('stratum/stratum')
 
+-- From Garry's Mod
+
 function PrintTable ( t, indent, done )
 
 	done = done or {}
@@ -38,6 +40,8 @@ function PrintTable ( t, indent, done )
 
 end
 
+-- #table doesn't work
+
 function tableLength(tbl)
 	local c = 0
 	
@@ -53,7 +57,9 @@ print('Running tests...')
 require('tests.inheritance')
 require('tests.interfaces')
 require('tests.traits')
+require('tests.interfaces_and_traits')
 require('tests.statics')
+require('tests.constructor')
 
 print('')
 print('Running performance tests...')

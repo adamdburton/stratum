@@ -11,7 +11,6 @@ Stratum is a class system for lua with inheritance, interfaces, traits and stati
 
 ##Future Development
 
-* Static properties/methods.
 * Private/public/protected properties/methods.
 
 ##Installation
@@ -126,7 +125,7 @@ local User = class 'User' is {
 	exists = false,
 	lastID = 1,
 	
-	create = function(name, email, password) -- static function, no self argument
+	create = function(name, email, password) -- static method, no self argument
 		local user = new 'User'
 		
 		user.name = name

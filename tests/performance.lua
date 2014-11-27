@@ -4,15 +4,15 @@ require('stratum/stratum')
 
 function time(title, f)
 
-  collectgarbage()
+	collectgarbage()
 
-  local startTime = os.clock()
+	local startTime = os.clock()
 
-  for i=0,10000 do f() end
+	for i=0,10000 do f() end
 
-  local endTime = os.clock()
+	local endTime = os.clock()
 
-  print( title, endTime - startTime )
+	print( title, endTime - startTime )
 
 end
 
@@ -52,7 +52,7 @@ class 'B' extends 'A'
 local b = new 'B'
 
 time('Inherited method invocation', function()
-  b:foo()
+	b:foo()
 end)
 
 -- Static calls
@@ -66,11 +66,11 @@ local A = class 'A' is {
 }
 
 time('class method invocation', function()
-  A.bar()
+	A.bar()
 end)
 
 local B = class 'B' extends 'A'
 
 time('inherited class method invocation', function()
-  B.bar()
+	B.bar()
 end)

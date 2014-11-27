@@ -85,14 +85,14 @@ function class(name)
 		static = function(self)
 			return _staticClass(self.__className)
 		end,
-		
-		__construct = function() end,
-		__destruct = function() end,
 	}
 	
 	local classMeta = {
 		
-		__methods = {},
+		__methods = {
+			__construct = function() end
+		},
+		
 		__traitMethods = {},
 		
 		__properties = {},
@@ -121,6 +121,7 @@ function class(name)
 			if mt.__methods[key] then
 				return mt.__methods[key]
 			end
+			
 			
 			-- Or nothing!
 		end,
@@ -208,7 +209,7 @@ function has(name)
 	assert(lastType == 'classes', 'Only classes can have traits')
 	assert(stratum.traits[name], 'Cannot use nonexistent trait ' .. name)
 	
-	-- Override any trait methods in lastName with trait name
+	-- Put the methods from the trait in the metatable
 	
 	for k, v in pairs(stratum.traits[name]) do
 		stratum.classMetas[lastName].__traitMethods[k] = v
@@ -226,16 +227,6 @@ function is(tbl)
 	
 	if lastType == 'classes' then
 		
-		-- Check that this class implements all functions defined in it's interfaces
-		
-		if stratum.classImplements[lastName] then
-			for _, interface in pairs(stratum.classImplements[lastName]) do
-				for method, _ in pairs(stratum.interfaces[interface]) do
-					assert(tbl[method], 'Class ' .. lastName .. ' must implement method ' .. method .. '')
-				end
-			end
-		end
-		
 		-- Loop the table
 		
 		for k, v in pairs(tbl) do
@@ -248,6 +239,16 @@ function is(tbl)
 				
 				stratum.classMetas[lastName].__properties[k] = v
 				stratum.classMetas[lastName].__staticProperties[k] = v
+			end
+		end
+		
+		-- Check that this class implements all functions defined in it's interfaces
+		
+		if stratum.classImplements[lastName] then
+			for _, interface in pairs(stratum.classImplements[lastName]) do
+				for method, _ in pairs(stratum.interfaces[interface]) do
+					assert(stratum.classMetas[lastName].__methods[method] or stratum.classMetas[lastName].__traitMethods[method], 'Class ' .. lastName .. ' must implement method ' .. method .. '')
+				end
 			end
 		end
 		

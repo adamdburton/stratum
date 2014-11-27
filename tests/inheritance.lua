@@ -24,6 +24,8 @@ class 'User' is {
 
 class 'Administrator' extends 'User' is {
 	
+	test = 456,
+	
 	isAdministrator = function(self)
 		return true
 	end,
@@ -33,9 +35,11 @@ class 'Administrator' extends 'User' is {
 	end
 }
 
---local admin = new 'Administrator'
+local admin = new 'Administrator'
 
 class 'SuperAdministrator' extends 'Administrator' is {
+	
+	test = 789,
 	
 	isAdministrator = function(self)
 		return self:parent():isAdministrator()
@@ -52,7 +56,8 @@ local superAdmin = new 'SuperAdministrator'
 superAdmin.firstName = 'Trevor'
 superAdmin.lastName = 'Phillips'
 
-assert(superAdmin.test == 123, 'superAdmin.test property should be 123')
+assert(admin.test == 456, 'admin.test property should be 456')
+assert(superAdmin.test == 789, 'superAdmin.test property should be 789')
 assert(superAdmin:isSuperAdministrator() == true, 'superAdmin:isSuperAdministrator() method should return true')
 assert(superAdmin:existsInUserButNotAdministratorOrSuperAdministrator() == string.format('%s %s', superAdmin.firstName, superAdmin.lastName), 'superAdmin:existsInUserButNotAdministratorOrSuperAdministrator() should return ' .. superAdmin.firstName)
 assert(superAdmin:existsInAdministratorButNotSuperAdministrator() == superAdmin.lastName, 'superAdmin:existsInAdministratorButNotSuperAdministrator() should return ' .. superAdmin.lastName)
