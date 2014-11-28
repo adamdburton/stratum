@@ -1,0 +1,17 @@
+require('stratum/stratum')
+require('tests/utils')
+
+print('')
+print('Running tests...')
+require('tests/inheritance')
+require('tests/interfaces')
+require('tests/traits')
+require('tests/interfaces_and_traits')
+require('tests/statics')
+require('tests/constructor')
+require('tests/try_catch')
+
+print('')
+print('Running performance tests...')
+require('tests/performance')
+print('')
