@@ -211,4 +211,7 @@ implements(name)
 has(name)
 is(tbl)
 new(class, ...)
+throw(class, ...)
+try(function)
+catch(exception, function) or catch(table)
 ```
