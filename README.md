@@ -1,11 +1,12 @@
 stratum
 =======
 
-Stratum is a php-like class system for lua with inheritance, interfaces, traits and statics.
+Stratum is a php-like class system for lua with inheritance, interfaces, traits and statics, exceptions and try/catch functions.
 
 ##Features
 
 * Class inheritance, interfaces and traits.
+* Exceptions and try/catch functions.
 * PHP-style definitions using syntactic sugar.
 * No dependencies.
 
@@ -166,6 +167,7 @@ class 'SomeOtherException' extends 'Exception' is { }
 
 try(function()
 	throw ('SomeException', 'This is a message')
+	--echo something[thatDoesNotExist]
 end)
 catch({
 	['SomeException'] = function(exception)
@@ -173,6 +175,9 @@ catch({
 	end,
 	['SomeOtherException'] = function(exception)
 		return('Caught SomeOtherException: ' .. exception.message) -- This won't be called
+	end,
+	['ErrorException'] = function(exception)
+		print('There was an error!' .. exception.message)
 	end
 })
 ```
