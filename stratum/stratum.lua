@@ -173,6 +173,12 @@ function extends(name) -- user
 	
 	-- Copy the meta table from the base class to the class being defined now
 	
+	for k, v in pairs(stratum.classMetas[name]) do
+		if type(v) == 'function' then
+			stratum.classMetas[lastName][k] = v
+		end
+	end
+	
 	for k, v in pairs(stratum.classMetas[name].__methods) do
 		stratum.classMetas[lastName].__methods[k] = v
 	end
@@ -231,7 +237,11 @@ function is(tbl)
 			if type(v) == 'function' then
 				-- Add any methods to the __methods meta table
 				
-				stratum.classMetas[lastName].__methods[k] = v
+				if k:sub(1, 2) == '__' and k ~= '__construct' then
+					stratum.classMetas[lastName][k] = v
+				else
+					stratum.classMetas[lastName].__methods[k] = v
+				end
 			else
 				-- Add any non-methods to the __properties meta table
 				
@@ -297,7 +307,8 @@ end
 function throw(class, ...)
 	assert(stratum.classExtends[class] == 'Exception', 'Thrown classes must extend Exception')
 	
-	return new (class, unpack({ ... }))
+	local exception = new (class, unpack({ ... }))
+	exception:error()
 end
 
 local tryFunc = function() end
@@ -309,18 +320,19 @@ end
 function catch(exception, func)
 	local res, err = pcall(tryFunc)
 	
-	if not res and err.__className then
-		print('here')
+	if not res then
+		if not err.__className then
+			err = new ('ErrorException', err)
+		end
+		
 		if type(exception) == 'table' and exception[err.__className] then
 			return exception[err.__className](err)
 		elseif type(exception) == 'string' and exception == err.__className then
-			func(err)
+			return func(err)
 		else
-			error('Uncaught exception: ' .. err.__className)
+			error('Uncaught ' .. tostring(err))
 		end
 	end
-	
-	error('Uncaught error: ' .. err)
 	
 	tryFunc = function() end
 end
@@ -333,8 +345,16 @@ class 'Exception' is {
 	
 	__construct = function(self, message)
 		self.message = message
-		
+	end,
+	
+	__tostring = function(self)
+		return self.__className .. ': ' .. self.message
+	end,
+	
+	error = function(self)
 		error(self)
 	end
 	
 }
+
+class 'ErrorException' extends 'Exception' is { }

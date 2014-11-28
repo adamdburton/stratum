@@ -1,5 +1,3 @@
-require('stratum/stratum')
-
 -- From Garry's Mod
 
 function PrintTable ( t, indent, done )
@@ -51,17 +49,3 @@ function tableLength(tbl)
 	
 	return c
 end
-
-print('')
-print('Running tests...')
-require('tests.inheritance')
-require('tests.interfaces')
-require('tests.traits')
-require('tests.interfaces_and_traits')
-require('tests.statics')
-require('tests.constructor')
-
-print('')
-print('Running performance tests...')
-require('tests.performance')
-print('')
