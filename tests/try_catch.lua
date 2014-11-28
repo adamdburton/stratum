@@ -1,6 +1,7 @@
 require('stratum/stratum')
 
 class 'SomeException' extends 'Exception' is { }
+class 'AnotherException' extends 'Exception' is { }
 class 'SomeOtherException' extends 'Exception' is { }
 
 try(function()
@@ -13,7 +14,14 @@ local caught = catch({
 })
 
 try(function()
-	throw ('SomeOtherException', 'This is another message')
+	throw ('AnotherException', 'This is a another message')
+end)
+local caught2 = catch('AnotherException', function(exception)
+	return('Caught AnotherException: ' .. exception.message)
+end)
+
+try(function()
+	throw ('SomeOtherException', 'This is some other message')
 end)
 local ret, uncaught = pcall(function()
 	catch({
@@ -24,6 +32,7 @@ local ret, uncaught = pcall(function()
 end)
 
 assert(caught == 'Caught SomeException: This is a message', 'SomeException should be caught')
+assert(caught2 == 'Caught AnotherException: This is a message', 'SomeException should be caught')
 assert(uncaught:find('Uncaught exception: SomeOtherException', 1, true), 'SomeOtherException should not be caught')
 
 print('👍  All try/catch tests okay!')

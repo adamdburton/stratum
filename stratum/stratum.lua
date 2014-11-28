@@ -306,12 +306,15 @@ function try(func)
 	tryFunc = func
 end
 
-function catch(tbl)
+function catch(exception, func)
 	local res, err = pcall(tryFunc)
 	
 	if not res and err.__className then
-		if tbl[err.__className] then
-			return tbl[err.__className](err)
+		print('here')
+		if type(exception) == 'table' and exception[err.__className] then
+			return exception[err.__className](err)
+		elseif type(exception) == 'string' and exception == err.__className then
+			func(err)
 		else
 			error('Uncaught exception: ' .. err.__className)
 		end
