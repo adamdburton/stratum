@@ -19,7 +19,7 @@ end
 -- Class creation
 
 time('Class creation', function()
-	class 'A'
+	class 'A' is { }
 end)
 
 -- Instance creation
@@ -47,7 +47,7 @@ end)
 
 -- Inherited method invocation
 
-class 'B' extends 'A'
+class 'B' extends 'A' is  { }
 
 local b = new 'B'
 
@@ -69,7 +69,7 @@ time('class method invocation', function()
 	A.bar()
 end)
 
-local B = class 'B' extends 'A'
+local B = class 'B' extends 'A' is { }
 
 time('inherited class method invocation', function()
 	B.bar()

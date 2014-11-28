@@ -15,7 +15,7 @@ stratum.classExtends = {}
 stratum.classImplements = {}
 stratum.classTraits = {}
 
--- Internal reference to the name of the latest defined class, use for applying extensions, implementations, traits, privates, publics, protecteds and statics
+-- Internal reference to the name of the latest defined class, used for applying extensions, implementations, traits
 
 local lastType = nil
 local lastName = nil
@@ -25,8 +25,6 @@ local lastName = nil
 ]]
 
 local function _staticClass(name)
-	-- Build a table up for returning the static object
-	
 	return setmetatable({ __className = name, new = function(...) return new (self.__className, unpack({ ... })) end }, {
 		
 		__index = function(s, k)
@@ -282,7 +280,7 @@ function new(class, ...)
 	-- Add any default properties in
 	
 	for k, v in pairs(stratum.classMetas[class].__properties) do
-		classTable[k] = v
+		classTable.__properties[k] = v
 	end
 	
 	-- Call the constructor
@@ -296,20 +294,44 @@ end
 
 -- Exceptions
 
-function exception(name)
-	return class (name)
-end
-
 function throw(class, ...)
+	assert(stratum.classExtends[class] == 'Exception', 'Thrown classes must extend Exception')
+	
 	return new (class, unpack({ ... }))
 end
 
-local errorHandlers = {}
+local tryFunc = function() end
 
 function try(func)
-	
+	tryFunc = func
 end
 
-function catch(exception, func)
+function catch(tbl)
+	local res, err = pcall(tryFunc)
 	
+	if not res and err.__className then
+		if tbl[err.__className] then
+			return tbl[err.__className](err)
+		else
+			error('Uncaught exception: ' .. err.__className)
+		end
+	end
+	
+	error('Uncaught error: ' .. err)
+	
+	tryFunc = function() end
 end
+
+-- Create exception class
+
+class 'Exception' is {
+	
+	message = '',
+	
+	__construct = function(self, message)
+		self.message = message
+		
+		error(self)
+	end
+	
+}
