@@ -155,9 +155,26 @@ print(User.lastID) -- Static property
 ####Chaining
 
 ```lua
-class 'SomeClass' extends 'AnotherClass' implements 'SomeInterface' implements 'AnotherInterface' has 'SomeTrait' has 'AnotherTrait' is {
+class 'SomeClass' extends 'AnotherClass' implements 'SomeInterface' implements 'AnotherInterface' has 'SomeTrait' has 'AnotherTrait' is { }
+```
 
-}
+####Try/Catch
+
+```lua
+class 'SomeException' extends 'Exception' is { }
+class 'SomeOtherException' extends 'Exception' is { }
+
+try(function()
+	throw ('SomeException', 'This is a message')
+end)
+catch({
+	['SomeException'] = function(exception)
+		return('Caught SomeException: ' .. exception.message) -- This will be called
+	end,
+	['SomeOtherException'] = function(exception)
+		return('Caught SomeOtherException: ' .. exception.message) -- This won't be called
+	end
+})
 ```
 
 ##Performance
