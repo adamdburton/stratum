@@ -196,6 +196,12 @@ extends('SomeClass')
 impliments('SomeInterface')
 has('SomeTrait')
 is({ someProperty = 'hello', someMethod = function(self) return self.someProperty end })
+
+new('User')
+
+throw('Exception')
+try(function() end)
+catch('Exception', function() end)
 ```
 
 ##Globals
