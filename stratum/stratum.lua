@@ -254,8 +254,12 @@ function is(tbl)
 		
 		if stratum.classImplements[lastName] then
 			for _, interface in pairs(stratum.classImplements[lastName]) do
-				for method, _ in pairs(stratum.interfaces[interface]) do
-					assert(stratum.classMetas[lastName].__methods[method] or stratum.classMetas[lastName].__traitMethods[method], 'Class ' .. lastName .. ' must implement method ' .. method .. '')
+				for k, v in pairs(stratum.interfaces[interface]) do
+					if type(v) == 'function' then
+						assert(stratum.classMetas[lastName].__methods[k] or stratum.classMetas[lastName].__traitMethods[k], 'Class ' .. lastName .. ' must implement method ' .. k .. '')
+					else
+						assert(stratum.classMetas[lastName].__properties[k] ~= nil, 'Class ' .. lastName .. ' must have property ' .. k .. '')
+					end
 				end
 			end
 		end
