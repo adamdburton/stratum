@@ -2,7 +2,7 @@
 	"name": "adamdburton/stratum",
 	"description": "Class system for lua with inheritance, interfaces and traits",
 	"homepage": "https://github.com/adamdburton/stratum",
-	"keywords": [ "classes" ],
+	"tags": [ "classes" ],
 	"license": "MIT",
 	"authors": [
 		{
