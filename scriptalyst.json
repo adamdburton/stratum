@@ -12,7 +12,7 @@
 		}
 	],
 	"support": {
-		"issues": "https://github.com/adamdburton/stratum/issues",
+		"issues": "https://github.com/adamdburton/stratum/issues"
 	},
 	"autorun": {
 		"shared": [
