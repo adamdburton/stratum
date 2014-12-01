@@ -1,8 +1,19 @@
 {
 	"name": "adamdburton/stratum",
 	"description": "Class system for lua with inheritance, interfaces and traits",
+	"homepage": "https://github.com/adamdburton/stratum",
 	"keywords": [ "classes" ],
 	"license": "MIT",
+	"authors": [
+		{
+			"name": "Adam Burton",
+			"homepage": "http://burt0n.net",
+			"role": "Developer"
+		}
+	],
+	"support": {
+		"issues": "https://github.com/adamdburton/stratum/issues",
+	},
 	"autorun": {
 		"shared": [
 			"stratum/stratum.lua"
