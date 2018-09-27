@@ -3,28 +3,28 @@ stratum
 
 Stratum is a php-like class system for lua with inheritance, interfaces, traits and statics, exceptions and try/catch functions.
 
-##Features
+## Features
 
 * Class inheritance, interfaces and traits.
 * Exceptions and try/catch functions.
 * PHP-style definitions using syntactic sugar.
 * No dependencies.
 
-##Future Development
+## Future Development
 
 * Private/public/protected properties/methods.
 
-##Installation
+## Installation
 
 ```lua
 require('stratum/stratum')
 ```
 
-##Examples
+## Examples
 
 Below are a few examples on how to use stratum.
 
-####Class Definition
+#### Class Definition
 
 ```lua
 class 'User' is {
@@ -40,7 +40,7 @@ class 'User' is {
 }
 ```
 
-####Class Instantiation
+#### Class Instantiation
 
 ```lua
 local user = new 'User' -- Without parameters
@@ -48,7 +48,7 @@ local user = new 'User' -- Without parameters
 local user2 = new ('User', 'Adam') -- With parameters
 ```
 
-####Extending Classes
+#### Extending Classes
 
 ```lua
 class 'Administrator' extends 'User' is {
@@ -65,7 +65,7 @@ print(user:sayHello()) -- Hi Adam!
 print(admin:sayHello()) -- Hi Jim, you're an administrator!
 ```
 
-####Interfaces
+#### Interfaces
 
 ```lua
 interface 'DataInterface' is {
@@ -90,7 +90,7 @@ class 'TableDataInterface' implements 'DataInterface' is {
 }
 ```
 
-####Traits
+#### Traits
 
 ```lua
 trait 'Shareable' is {
@@ -118,7 +118,7 @@ local comment = new 'Comment';
 comment:share('I just shared a comment with stratum') -- The trait calls the share method with some text prepended
 ```
 
-####Static Methods and Properties
+#### Static Methods and Properties
 
 ```lua
 local User = class 'User' is {
@@ -153,13 +153,13 @@ print(User.lastID) -- Static property
 
 ```
 
-####Chaining
+#### Chaining
 
 ```lua
 class 'SomeClass' extends 'AnotherClass' implements 'SomeInterface' implements 'AnotherInterface' has 'SomeTrait' has 'AnotherTrait' is { }
 ```
 
-####Try/Catch
+#### Try/Catch
 
 ```lua
 class 'SomeException' extends 'Exception' is { }
@@ -182,11 +182,11 @@ catch({
 })
 ```
 
-##Performance
+## Performance
 
 There are a few performance and test files included in the ```tests``` directory. These tests also contain working examples of each feature of Stratum.
 
-##No Sugar Please
+## No Sugar Please
 
 If you prefer your lua a little less sweet, you can also use standard syntax.
 
@@ -204,7 +204,7 @@ try(function() end)
 catch('Exception', function() end)
 ```
 
-##Globals
+## Globals
 
 Stratum defines the below 8 global methods.
 
